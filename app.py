@@ -113,6 +113,12 @@ if not st.session_state.started:
     st.title('Prognoza rynku')
     st.write('Zobaczysz **30 historycznych wykresów**. Każdy kończy się w punkcie **TERAZ**.')
     st.write('Oceń, czy za miesiąc rynek będzie **wyżej czy niżej**, a potem określ, jak bardzo jesteś pewien swojej prognozy.')
+
+    st.markdown('### Dziękuję za pomoc!')
+    st.write('Od ponad 30 lat zajmuję się rynkami finansowymi i psychologią podejmowania decyzji przez inwestorów.')
+    st.write('Próbuję przenieść online pewien pomysł z warsztatów, które prowadziłem przed laty. To na razie prototyp — dzięki Twojemu udziałowi mogę sprawdzić, czy ten pomysł działa.')
+    st.markdown('**Grzegorz Zalewski**')
+
     if st.button('ZACZYNAM',type='primary',use_container_width=True): init_test(); st.rerun()
     st.stop()
 

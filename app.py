@@ -118,6 +118,7 @@ if not st.session_state.started:
     st.write('Od ponad 30 lat zajmuję się rynkami finansowymi i psychologią podejmowania decyzji przez inwestorów.')
     st.write('Próbuję przenieść online pewien pomysł z warsztatów, które prowadziłem przed laty. To na razie prototyp — dzięki Twojemu udziałowi mogę sprawdzić, czy ten pomysł działa.')
     st.markdown('**Grzegorz Zalewski**')
+    st.caption('Odpowiedzi są zapisywane i posłużą do analizy zbiorczych wyników oraz dalszego rozwijania tego projektu.')
 
     if st.button('ZACZYNAM',type='primary',use_container_width=True): init_test(); st.rerun()
     st.stop()

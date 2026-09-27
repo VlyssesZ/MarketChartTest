@@ -180,10 +180,14 @@ if not st.session_state.finished:
                 st.session_state.confidence=val; st.rerun()
         st.caption('50% = równe szanse • 100% = pewność')
     else:
-        for val in CONF:
-            if st.button(WORDS[val],type='primary' if st.session_state.confidence==val else 'secondary',
-                         use_container_width=True,key=f'c{val}'):
-                st.session_state.confidence=val; st.rerun()
+        # Wariant słowny: 2 rzędy po 3 kompaktowe przyciski.
+        # Dzięki temu na telefonie nie powstaje sześć szerokich pasków.
+        for row in (CONF[:3], CONF[3:]):
+            cols=st.columns(3, gap='small')
+            for col,val in zip(cols,row):
+                if col.button(WORDS[val],type='primary' if st.session_state.confidence==val else 'secondary',
+                              use_container_width=True,key=f'c{val}'):
+                    st.session_state.confidence=val; st.rerun()
     disabled=st.session_state.direction is None or st.session_state.confidence is None
     if st.button('DALEJ',type='primary',use_container_width=True,disabled=disabled):
         ans={'test_id':st.session_state.test_id,'variant':st.session_state.variant,'question_no':q+1,

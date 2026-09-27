@@ -29,6 +29,15 @@ div[data-testid="stPlotlyChart"]{margin-top:-.4rem;margin-bottom:-.6rem}
 div.stButton>button{min-height:3rem;font-weight:650}
 div[data-testid="stProgress"]{margin-bottom:.15rem}
 #MainMenu, footer, header{visibility:hidden}
+
+.result-title{font-size:1.05rem;font-weight:700;margin:1rem 0 .45rem 0}
+.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.45rem;margin-bottom:.45rem}
+.result-card{border:1px solid rgba(128,128,128,.35);border-radius:.65rem;padding:.55rem .35rem;text-align:center}
+.result-label{font-size:.78rem;opacity:.78;white-space:nowrap}
+.result-value{font-size:1.75rem;font-weight:700;line-height:1.15;margin-top:.18rem}
+.result-value.small{font-size:1.35rem}
+.result-wide{border:1px solid rgba(128,128,128,.35);border-radius:.65rem;padding:.6rem .75rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem}
+.result-wide strong{font-size:1.35rem}
 @media (max-width: 640px){
  .block-container{padding:.45rem .55rem 1rem .55rem}
  h1{font-size:1.35rem!important}
@@ -104,7 +113,6 @@ if not st.session_state.started:
     st.title('Prognoza rynku')
     st.write('Zobaczysz **30 historycznych wykresów**. Każdy kończy się w punkcie **TERAZ**.')
     st.write('Oceń, czy za miesiąc rynek będzie **wyżej czy niżej**, a potem określ, jak bardzo jesteś pewien swojej prognozy.')
-    st.info('Nie musisz wiedzieć. Musisz wybrać. Niewielkie zmiany ceny będą traktowane jako brak wyraźnego ruchu i nie będą zaliczane ani jako trafienie, ani jako błąd.')
     if st.button('ZACZYNAM',type='primary',use_container_width=True): init_test(); st.rerun()
     st.stop()
 
@@ -120,17 +128,15 @@ if not st.session_state.finished:
     if b.button('WZROŚNIE',type='primary' if st.session_state.direction=='WZROST' else 'secondary',use_container_width=True):
         st.session_state.direction='WZROST'; st.rerun()
     st.markdown('### Jak bardzo jesteś pewien?')
-    if st.session_state.variant=='A_NUM':
-        labels=[f'{v}%' for v in CONF]
+    cols=st.columns(6, gap='small')
+    for col,val in zip(cols,CONF):
+        if col.button(f'{val}%',type='primary' if st.session_state.confidence==val else 'secondary',
+                      use_container_width=True,key=f'c{val}'):
+            st.session_state.confidence=val; st.rerun()
+    if st.session_state.confidence is None:
+        st.caption('50% = równe szanse • 100% = pewność')
     else:
-        labels=[WORDS[v] for v in CONF]
-    # 3 x 2 works better on phones and keeps all six choices readable
-    for start in (0,3):
-        cols=st.columns(3)
-        for col,val,label in zip(cols,CONF[start:start+3],labels[start:start+3]):
-            if col.button(label,type='primary' if st.session_state.confidence==val else 'secondary',use_container_width=True,key=f'c{val}'):
-                st.session_state.confidence=val; st.rerun()
-    if st.session_state.variant=='A_NUM': st.caption('50% = równe szanse • 100% = pewność')
+        st.caption(f'**{WORDS[st.session_state.confidence]}**')
     disabled=st.session_state.direction is None or st.session_state.confidence is None
     if st.button('DALEJ',type='primary',use_container_width=True,disabled=disabled):
         ans={'test_id':st.session_state.test_id,'variant':st.session_state.variant,'question_no':q+1,
@@ -147,18 +153,48 @@ if not st.session_state.finished:
         st.rerun()
 else:
     df=pd.DataFrame(st.session_state.answers)
-    st.title('Wynik testu')
     hit=int((df.result=='TRAFIONA').sum()); miss=int((df.result=='NIETRAFIONA').sum()); side=int((df.result=='BOK').sum())
-    c1,c2,c3=st.columns(3); c1.metric('Trafione',hit); c2.metric('Nietrafione',miss); c3.metric('Bok',side)
     resolved=df[df.result!='BOK']
-    if len(resolved): st.metric('Skuteczność rozstrzygniętych',f'{100*(resolved.result=="TRAFIONA").mean():.1f}%')
-    st.markdown('### Pewność')
-    cols=st.columns(3)
-    cols[0].metric('Wszystkie',f'{df.confidence.mean():.1f}%')
-    for col,label,res in zip(cols[1:],['Trafione','Nietrafione'],['TRAFIONA','NIETRAFIONA']):
-        x=df.loc[df.result==res,'confidence']; col.metric(label,'—' if x.empty else f'{x.mean():.1f}%')
-    x=df.loc[df.result=='BOK','confidence']; st.caption('Średnia pewność przy ruchu bocznym: '+('—' if x.empty else f'{x.mean():.1f}%'))
-    st.caption(f'Ruch od −{SIDEWAYS:.1f}% do +{SIDEWAYS:.1f}% traktujemy jako boczny.')
+    effectiveness = 100*(resolved.result=="TRAFIONA").mean() if len(resolved) else None
+    avg_all = df.confidence.mean()
+    x_hit=df.loc[df.result=='TRAFIONA','confidence']
+    x_miss=df.loc[df.result=='NIETRAFIONA','confidence']
+    avg_hit=None if x_hit.empty else x_hit.mean()
+    avg_miss=None if x_miss.empty else x_miss.mean()
+    x_side=df.loc[df.result=='BOK','confidence']
+
+    st.markdown('## Dziękuję za udział!')
+    st.write('Za chwilę zobaczysz swoje wyniki.')
+    st.write('Ten test nie sprawdza, czy potrafisz przewidywać rynek. **Inwestowanie to znacznie więcej niż zgadywanie, gdzie za miesiąc znajdzie się wykres.**')
+    st.write('Chodzi o pokazanie pewnych schematów związanych z **prognozowaniem i pewnością własnych ocen**.')
+    st.write('Pamiętaj: wynik **nie mówi nic o Twoich kompetencjach jako inwestora**.')
+    st.markdown('### A teraz Twoje wyniki')
+
+    def fmt(v):
+        return '—' if v is None else f'{v:.1f}%'
+
+    st.markdown(f'''
+    <div class="result-title">Twoje prognozy</div>
+    <div class="result-grid">
+      <div class="result-card"><div class="result-label">Trafione</div><div class="result-value">{hit}</div></div>
+      <div class="result-card"><div class="result-label">Nietrafione</div><div class="result-value">{miss}</div></div>
+      <div class="result-card"><div class="result-label">Brak ruchu</div><div class="result-value">{side}</div></div>
+    </div>
+    <div class="result-wide"><span>Skuteczność prognoz</span><strong>{fmt(effectiveness)}</strong></div>
+
+    <div class="result-title">Twoja pewność</div>
+    <div class="result-grid">
+      <div class="result-card"><div class="result-label">Wszystkie</div><div class="result-value small">{fmt(avg_all)}</div></div>
+      <div class="result-card"><div class="result-label">Trafione</div><div class="result-value small">{fmt(avg_hit)}</div></div>
+      <div class="result-card"><div class="result-label">Nietrafione</div><div class="result-value small">{fmt(avg_miss)}</div></div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    st.caption('Średnia pewność przy braku wyraźnego ruchu: '+('—' if x_side.empty else f'{x_side.mean():.1f}%'))
+    st.caption(f'Ruch od −{SIDEWAYS:.1f}% do +{SIDEWAYS:.1f}% traktujemy jako brak wyraźnego ruchu.')
+
+    st.info('**Etap 2:** chcę umożliwić obejrzenie, co rzeczywiście wydarzyło się później na każdym z wykresów. Pracuję nad tym.')
+
     if st.button('NOWY TEST',use_container_width=True):
         for k in list(st.session_state.keys()): del st.session_state[k]
         st.rerun()

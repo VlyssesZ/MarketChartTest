@@ -126,9 +126,10 @@ def save_rows(rows):
 if 'started' not in st.session_state: st.session_state.started=False
 
 if not st.session_state.started:
-    st.title('Prognoza rynku')
+    st.title('Sprawdź skuteczność swoich prognoz')
     st.write('Zobaczysz **30 historycznych wykresów**. Każdy kończy się w punkcie **TERAZ**.')
     st.write('Oceń, czy za miesiąc rynek będzie **wyżej czy niżej**, a potem określ, jak bardzo jesteś pewien swojej prognozy.')
+    st.write('**Całość zajmie około 6–8 minut. Na końcu zobaczysz swój wynik.**')
 
     st.markdown('### Dziękuję za pomoc!')
     st.write('Od ponad 30 lat zajmuję się rynkami finansowymi i psychologią podejmowania decyzji przez inwestorów.')
@@ -219,12 +220,7 @@ else:
     avg_miss=None if x_miss.empty else x_miss.mean()
     x_side=df.loc[df.result=='BOK','confidence']
 
-    st.markdown('## Dziękuję za udział!')
-    st.write('Za chwilę zobaczysz swoje wyniki.')
-    st.write('Ten test nie sprawdza, czy potrafisz przewidywać rynek. **Inwestowanie to znacznie więcej niż zgadywanie, gdzie za miesiąc znajdzie się wykres.**')
-    st.write('Chodzi o pokazanie pewnych schematów związanych z **prognozowaniem i pewnością własnych ocen**.')
-    st.write('Pamiętaj: wynik **nie mówi nic o Twoich kompetencjach jako inwestora**.')
-    st.markdown('### A teraz Twoje wyniki')
+    st.markdown('## A teraz Twoje wyniki')
 
     def fmt(v):
         return '—' if v is None else f'{v:.1f}%'
@@ -234,19 +230,26 @@ else:
     <div class="result-grid">
       <div class="result-card"><div class="result-label">Trafione</div><div class="result-value">{hit}</div></div>
       <div class="result-card"><div class="result-label">Nietrafione</div><div class="result-value">{miss}</div></div>
-      <div class="result-card"><div class="result-label">Brak ruchu</div><div class="result-value">{side}</div></div>
+      <div class="result-card"><div class="result-label">Brak wyraźnego ruchu</div><div class="result-value">{side}</div></div>
     </div>
-    <div class="result-wide"><span>Skuteczność prognoz</span><strong>{fmt(effectiveness)}</strong></div>
+    <div class="result-wide"><span>Skuteczność prognoz<br><small>{hit} trafnych z {len(resolved)} rozstrzygniętych prognoz</small></span><strong>{fmt(effectiveness)}</strong></div>
 
     <div class="result-title">Twoja pewność</div>
     <div class="result-grid">
-      <div class="result-card"><div class="result-label">Wszystkie</div><div class="result-value small">{fmt(avg_all)}</div></div>
+      <div class="result-card"><div class="result-label">Średnio</div><div class="result-value small">{fmt(avg_all)}</div></div>
       <div class="result-card"><div class="result-label">Trafione</div><div class="result-value small">{fmt(avg_hit)}</div></div>
       <div class="result-card"><div class="result-label">Nietrafione</div><div class="result-value small">{fmt(avg_miss)}</div></div>
     </div>
     ''', unsafe_allow_html=True)
 
     st.caption('Średnia pewność przy braku wyraźnego ruchu: '+('—' if x_side.empty else f'{x_side.mean():.1f}%'))
+
+    st.markdown(f'### **{fmt(effectiveness)} skuteczności vs {fmt(avg_all)} średniej pewności**')
+    st.write('**Zwróć uwagę na różnicę między tym, jak często miałeś rację, a tym, jak pewny byłeś swoich prognoz.**')
+    st.write('To właśnie ta różnica jest jednym z powodów, dla których powstał ten eksperyment.')
+    st.write('Nie mówi ona, czy jesteś dobrym czy złym inwestorem. **Inwestowanie to nie zgadywanie, gdzie za miesiąc znajdzie się wykres.**')
+    st.write('Chodzi raczej o coś innego: jak dużą pewność potrafimy przypisać decyzji podejmowanej na podstawie niepełnej informacji.')
+    st.markdown('**Dziękuję za udział.**')
     st.caption(f'Ruch od −{SIDEWAYS:.1f}% do +{SIDEWAYS:.1f}% traktujemy jako brak wyraźnego ruchu.')
 
     if st.button('NOWY TEST',use_container_width=True):

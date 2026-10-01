@@ -38,9 +38,13 @@ div[data-testid="stProgress"]{margin-bottom:.15rem}
 .result-value.small{font-size:1.35rem}
 .result-wide{border:1px solid rgba(128,128,128,.35);border-radius:.65rem;padding:.6rem .75rem;display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem}
 .result-wide strong{font-size:1.35rem}
-.reveal-ticker{font-size:1.55rem;font-weight:800;letter-spacing:.03em;margin:.15rem 0 .25rem 0}
+.reveal-ticker{font-size:1.55rem;font-weight:800;letter-spacing:.03em;margin:.15rem 0 .25rem 0}.reveal-result{font-size:1.65rem;font-weight:850;line-height:1.15;margin:.45rem 0 .15rem 0}.reveal-result .hit{color:#19a463}.reveal-result .miss{color:#e04b4b}.reveal-result .side{opacity:.72}
+.hero-results{margin:.35rem 0 1rem 0}.hero-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}.hero-card{border:1px solid rgba(128,128,128,.28);border-radius:18px;padding:1rem 1.1rem;background:rgba(128,128,128,.055);box-shadow:0 6px 22px rgba(0,0,0,.035)}.hero-kicker{font-size:.82rem;opacity:.72;margin-bottom:.25rem}.hero-number{font-size:2.7rem;font-weight:800;line-height:1}.hero-note{font-size:.84rem;opacity:.72;margin-top:.45rem}.ring-wrap{display:flex;align-items:center;gap:1rem;margin-top:.45rem}.ring{width:126px;height:126px;border-radius:50%;display:grid;place-items:center;flex:0 0 126px}.ring-inner{width:88px;height:88px;border-radius:50%;background:var(--background-color,#fff);display:grid;place-items:center;text-align:center;box-shadow:0 0 0 1px rgba(128,128,128,.08)}.ring-value{font-size:1.65rem;font-weight:850;line-height:1}.ring-small{font-size:.68rem;opacity:.68;margin-top:.15rem}.ring-copy{min-width:0}.hit{color:#19a463;font-weight:750}.miss{color:#e04b4b;font-weight:750}.confidence{color:#5577d8;font-weight:750}.compare-card{border-radius:18px;padding:1rem 1.15rem;margin:.8rem 0 1.1rem 0;background:rgba(128,128,128,.08);border:1px solid rgba(128,128,128,.22)}.compare-label{font-size:.8rem;opacity:.7;text-transform:uppercase;letter-spacing:.05em}.compare-values{font-size:1.65rem;font-weight:800;margin:.2rem 0}.mini-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem;margin:.45rem 0 1rem}.mini-card{border:1px solid rgba(128,128,128,.25);border-radius:14px;padding:.7rem .85rem}.mini-label{font-size:.78rem;opacity:.7}.mini-value{font-size:1.18rem;font-weight:750;margin-top:.15rem}.forecast-card{border:1px solid rgba(128,128,128,.25);border-radius:18px;padding:.9rem 1rem .3rem;margin-top:.4rem;background:rgba(128,128,128,.035)}.takeaway{border:1px solid rgba(128,128,128,.24);border-radius:18px;padding:1rem 1.15rem;margin-top:1.2rem;background:rgba(128,128,128,.065)}.takeaway-title{font-size:1.08rem;font-weight:800;margin-bottom:.4rem}.pillrow{font-weight:700;line-height:1.7}.section-head{font-size:1.15rem;font-weight:800;margin:1.2rem 0 .25rem}
 @media (max-width: 640px){
  .block-container{padding:.45rem .55rem 1rem .55rem}
+ .hero-grid,.mini-grid{grid-template-columns:1fr}
+ .hero-number{font-size:2.25rem}
+ .ring{width:112px;height:112px;flex-basis:112px}.ring-inner{width:78px;height:78px}.ring-value{font-size:1.45rem}
  h1{font-size:1.35rem!important}
  h3{font-size:1rem!important}
  div.stButton>button{min-height:2.7rem;font-size:.88rem;padding:.25rem .25rem}
@@ -126,10 +130,9 @@ def save_rows(rows):
 if 'started' not in st.session_state: st.session_state.started=False
 
 if not st.session_state.started:
-    st.title('Sprawdź skuteczność swoich prognoz')
+    st.title('Prognoza rynku')
     st.write('Zobaczysz **30 historycznych wykresów**. Każdy kończy się w punkcie **TERAZ**.')
     st.write('Oceń, czy za miesiąc rynek będzie **wyżej czy niżej**, a potem określ, jak bardzo jesteś pewien swojej prognozy.')
-    st.write('**Całość zajmie około 6–8 minut. Na końcu zobaczysz swój wynik.**')
 
     st.markdown('### Dziękuję za pomoc!')
     st.write('Od ponad 30 lat zajmuję się rynkami finansowymi i psychologią podejmowania decyzji przez inwestorów.')
@@ -146,6 +149,21 @@ if not st.session_state.finished and st.session_state.get('reveal',False):
     st.markdown('## **Ostatni wykres — zobacz, co wydarzyło się później**')
     st.markdown(f"<div class='reveal-ticker'>{c['instrument']}</div>", unsafe_allow_html=True)
     st.caption("Wykres znormalizowany — pokazuje zmianę ceny, nie jej poziom.")
+    # Wynik ostatniej odpowiedzi: rzeczywista zmiana rynku + ocena prognozy.
+    last = st.session_state.answers[-1]
+    ret = float(last['future_return_pct'])
+    ret_txt = f"{ret:+.1f}%".replace('.', ',')
+    result = last['result']
+    if result == 'TRAFIONA':
+        result_label, result_class = 'TRAFIONA', 'hit'
+    elif result == 'NIETRAFIONA':
+        result_label, result_class = 'NIETRAFIONA', 'miss'
+    else:
+        result_label, result_class = 'BRAK WYRAŹNEGO RUCHU', 'side'
+    st.markdown(
+        f"<div class='reveal-result'>{ret_txt} — <span class='{result_class}'>{result_label}</span></div>",
+        unsafe_allow_html=True,
+    )
     st.plotly_chart(make_chart(c,reveal=True),use_container_width=True,config={'displayModeBar':False,'staticPlot':True})
     remaining = len(st.session_state.cases) - (q + 1)
     if remaining > 0:
@@ -214,43 +232,79 @@ else:
     resolved=df[df.result!='BOK']
     effectiveness = 100*(resolved.result=="TRAFIONA").mean() if len(resolved) else None
     avg_all = df.confidence.mean()
-    x_hit=df.loc[df.result=='TRAFIONA','confidence']
-    x_miss=df.loc[df.result=='NIETRAFIONA','confidence']
-    avg_hit=None if x_hit.empty else x_hit.mean()
-    avg_miss=None if x_miss.empty else x_miss.mean()
-    x_side=df.loc[df.result=='BOK','confidence']
-
-    st.markdown('## A teraz Twoje wyniki')
+    x_hit=df.loc[df.result=='TRAFIONA','confidence']; x_miss=df.loc[df.result=='NIETRAFIONA','confidence']
+    avg_hit=None if x_hit.empty else x_hit.mean(); avg_miss=None if x_miss.empty else x_miss.mean()
 
     def fmt(v):
-        return '—' if v is None else f'{v:.1f}%'
+        return '—' if v is None or pd.isna(v) else f'{v:.1f}%'
 
-    st.markdown(f'''
-    <div class="result-title">Twoje prognozy</div>
-    <div class="result-grid">
-      <div class="result-card"><div class="result-label">Trafione</div><div class="result-value">{hit}</div></div>
-      <div class="result-card"><div class="result-label">Nietrafione</div><div class="result-value">{miss}</div></div>
-      <div class="result-card"><div class="result-label">Brak wyraźnego ruchu</div><div class="result-value">{side}</div></div>
-    </div>
-    <div class="result-wide"><span>Skuteczność prognoz<br><small>{hit} trafnych z {len(resolved)} rozstrzygniętych prognoz</small></span><strong>{fmt(effectiveness)}</strong></div>
+    st.markdown('## Twój wynik')
+    st.caption('To podsumowanie dotyczy tylko tego testu. Nie jest oceną Twoich kompetencji inwestycyjnych.')
 
-    <div class="result-title">Twoja pewność</div>
-    <div class="result-grid">
-      <div class="result-card"><div class="result-label">Średnio</div><div class="result-value small">{fmt(avg_all)}</div></div>
-      <div class="result-card"><div class="result-label">Trafione</div><div class="result-value small">{fmt(avg_hit)}</div></div>
-      <div class="result-card"><div class="result-label">Nietrafione</div><div class="result-value small">{fmt(avg_miss)}</div></div>
-    </div>
-    ''', unsafe_allow_html=True)
+    eff_ring = 0 if effectiveness is None or pd.isna(effectiveness) else max(0,min(100,float(effectiveness)))
+    conf_ring = 0 if avg_all is None or pd.isna(avg_all) else max(0,min(100,float(avg_all)))
+    st.markdown(f"""
+    <div class="hero-results"><div class="hero-grid">
+      <div class="hero-card"><div class="hero-kicker">SKUTECZNOŚĆ PROGNOZ</div>
+        <div class="ring-wrap"><div class="ring" style="background:conic-gradient(#19a463 0 {eff_ring:.1f}%, #e04b4b {eff_ring:.1f}% 100%)"><div class="ring-inner"><div><div class="ring-value">{fmt(effectiveness)}</div><div class="ring-small">skuteczność</div></div></div></div>
+        <div class="ring-copy"><div class="hero-note"><span class="hit">{hit} trafionych</span><br><span class="miss">{miss} nietrafionych</span><br>{side} bez wyraźnego ruchu</div></div></div>
+      </div>
+      <div class="hero-card"><div class="hero-kicker">ŚREDNIA PEWNOŚĆ</div>
+        <div class="ring-wrap"><div class="ring" style="background:conic-gradient(#5577d8 0 {conf_ring:.1f}%, rgba(128,128,128,.18) {conf_ring:.1f}% 100%)"><div class="ring-inner"><div><div class="ring-value">{fmt(avg_all)}</div><div class="ring-small">pewność</div></div></div></div>
+        <div class="ring-copy"><div class="hero-note">Przy trafionych: <span class="hit">{fmt(avg_hit)}</span><br>Przy nietrafionych: <span class="miss">{fmt(avg_miss)}</span></div></div></div>
+      </div>
+    </div></div>
+    <div class="compare-card"><div class="compare-label">Pewność a skuteczność</div><div class="compare-values"><span class="confidence">{fmt(avg_all)}</span> &nbsp;↔&nbsp; {fmt(effectiveness)}</div><div class="hero-note">Zwróć uwagę na różnicę między skutecznością prognoz a deklarowanym poziomem pewności.</div></div>
+    """, unsafe_allow_html=True)
 
-    st.caption('Średnia pewność przy braku wyraźnego ruchu: '+('—' if x_side.empty else f'{x_side.mean():.1f}%'))
+    # Najwyższy i najniższy użyty poziom pewności — krótki opis przed wykresem.
+    used=sorted(df.confidence.dropna().unique())
+    lo_conf, hi_conf=used[0], used[-1]
+    def conf_summary(conf):
+        d=df[(df.confidence==conf) & (df.result!='BOK')]
+        h=int((d.result=='TRAFIONA').sum()); m=int((d.result=='NIETRAFIONA').sum())
+        acc=(100*h/(h+m)) if (h+m) else None
+        return h,m,acc
+    lo_h,lo_m,lo_acc=conf_summary(lo_conf); hi_h,hi_m,hi_acc=conf_summary(hi_conf)
+    if len(used)>=2:
+        st.markdown(f"""<div class="mini-grid">
+        <div class="mini-card"><div class="mini-label">NAJNIŻSZA UŻYTA PEWNOŚĆ · {int(lo_conf)}%</div><div class="mini-value">{fmt(lo_acc)} trafności</div><div class="hero-note">{lo_h} trafionych · {lo_m} nietrafionych</div></div>
+        <div class="mini-card"><div class="mini-label">NAJWYŻSZA UŻYTA PEWNOŚĆ · {int(hi_conf)}%</div><div class="mini-value">{fmt(hi_acc)} trafności</div><div class="hero-note">{hi_h} trafionych · {hi_m} nietrafionych</div></div>
+        </div>""", unsafe_allow_html=True)
 
-    st.markdown(f'### **{fmt(effectiveness)} skuteczności vs {fmt(avg_all)} średniej pewności**')
-    st.write('**Zwróć uwagę na różnicę między tym, jak często miałeś rację, a tym, jak pewny byłeś swoich prognoz.**')
-    st.write('To właśnie ta różnica jest jednym z powodów, dla których powstał ten eksperyment.')
-    st.write('Nie mówi ona, czy jesteś dobrym czy złym inwestorem. **Inwestowanie to nie zgadywanie, gdzie za miesiąc znajdzie się wykres.**')
-    st.write('Chodzi raczej o coś innego: jak dużą pewność potrafimy przypisać decyzji podejmowanej na podstawie niepełnej informacji.')
-    st.markdown('**Dziękuję za udział.**')
-    st.caption(f'Ruch od −{SIDEWAYS:.1f}% do +{SIDEWAYS:.1f}% traktujemy jako brak wyraźnego ruchu.')
+    conf_rows=[]
+    for conf in used:
+        d=df[(df.confidence==conf) & (df.result!='BOK')]
+        if len(d):
+            conf_rows.append({'Pewność':f'{int(conf)}%','Trafność':100*(d.result=='TRAFIONA').mean(),'Liczba':len(d)})
+    if len(conf_rows)>=2:
+        st.markdown('<div class="section-head">Czy większa pewność oznaczała większą trafność?</div>', unsafe_allow_html=True)
+        conf_df=pd.DataFrame(conf_rows)
+        fig_conf=go.Figure(go.Bar(x=conf_df['Pewność'],y=conf_df['Trafność'],text=[f'{v:.0f}%' for v in conf_df['Trafność']],textposition='outside',hovertemplate='%{x}: %{y:.1f}%<extra></extra>',marker_line_width=0))
+        fig_conf.add_hline(y=50,line_dash='dot',line_width=1,opacity=.45)
+        fig_conf.update_yaxes(range=[0,105],ticksuffix='%',fixedrange=True,gridcolor='rgba(128,128,128,.13)')
+        fig_conf.update_xaxes(title=None,fixedrange=True)
+        fig_conf.update_layout(height=285,margin=dict(l=8,r=8,t=12,b=20),showlegend=False,bargap=.38,paper_bgcolor='rgba(0,0,0,0)',plot_bgcolor='rgba(0,0,0,0)')
+        st.plotly_chart(fig_conf,use_container_width=True,config={'displayModeBar':False,'staticPlot':True})
+    else:
+        st.info(f'Przez cały test utrzymywałeś ten sam poziom pewności: {int(df.confidence.iloc[0])}%. Nie da się więc porównać, czy większa pewność wiązała się u Ciebie z większą trafnością.')
+
+    max_conf=df.confidence.max()
+    most=df[df.confidence==max_conf].iloc[0]
+    case=next((c for c in st.session_state.cases if c['case_id']==most.case_id),None)
+    st.markdown('<div class="section-head">Twoja najbardziej pewna prognoza</div>', unsafe_allow_html=True)
+    if case is not None:
+        direction='WZROŚNIE' if most.prediction=='WZROST' else 'SPADNIE'
+        result_label={'TRAFIONA':'TRAFIONA','NIETRAFIONA':'NIETRAFIONA','BOK':'BRAK WYRAŹNEGO RUCHU'}[most.result]
+        sign='+' if most.future_return_pct>0 else ''
+        st.markdown(f"""<div class="forecast-card"><div class="hero-kicker">{case['instrument']}</div><div class="mini-value">Pewność {int(max_conf)}% · prognoza: {direction}</div><div class="hero-note">Po miesiącu: {sign}{most.future_return_pct:.1f}% · <b>{result_label}</b></div></div>""", unsafe_allow_html=True)
+        st.plotly_chart(make_chart(case,reveal=True),use_container_width=True,config={'displayModeBar':False,'staticPlot':True})
+
+    st.markdown(f"""<div class="takeaway"><div class="takeaway-title">Pamiętaj: inwestowanie to nie prognozowanie</div>
+    <div>Trafne przewidywanie kierunku rynku to tylko jeden z elementów decyzji — i nie zawsze najważniejszy.</div>
+    <div class="pillrow">Wielkość pozycji · podejmowane ryzyko · zarządzanie stratą · konsekwencja</div>
+    <div>Możesz nie wiedzieć, co zrobi rynek, a mimo to podejmować dobre decyzje inwestycyjne.</div></div>
+    <div class="hero-note" style="margin:.55rem .2rem 1rem">Ruch od −{SIDEWAYS:.1f}% do +{SIDEWAYS:.1f}% traktujemy jako brak wyraźnego ruchu.</div>""", unsafe_allow_html=True)
 
     if st.button('NOWY TEST',use_container_width=True):
         for k in list(st.session_state.keys()): del st.session_state[k]

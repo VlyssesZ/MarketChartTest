@@ -306,6 +306,77 @@ else:
     <div>Możesz nie wiedzieć, co zrobi rynek, a mimo to podejmować dobre decyzje inwestycyjne.</div></div>
     <div class="hero-note" style="margin:.55rem .2rem 1rem">Ruch od −{SIDEWAYS:.1f}% do +{SIDEWAYS:.1f}% traktujemy jako brak wyraźnego ruchu.</div>""", unsafe_allow_html=True)
 
+    # Przegląd własnych odpowiedzi po zakończeniu testu.
+    # Pokazujemy tylko jeden wykres naraz, żeby ekran pozostał lekki i czytelny.
+    if 'review_open' not in st.session_state:
+        st.session_state.review_open=False
+    if 'review_idx' not in st.session_state:
+        st.session_state.review_idx=0
+
+    if not st.session_state.review_open:
+        if st.button('ZOBACZ SWOJE ODPOWIEDZI',type='primary',use_container_width=True,key='open_review'):
+            st.session_state.review_open=True
+            st.session_state.review_idx=0
+            st.rerun()
+    else:
+        answers=st.session_state.answers
+        idx=max(0,min(int(st.session_state.review_idx),len(answers)-1))
+        st.session_state.review_idx=idx
+        ans=answers[idx]
+        review_case=next((c for c in st.session_state.cases if c['case_id']==ans['case_id']),None)
+
+        st.markdown('<div class="section-head">Twoje odpowiedzi</div>', unsafe_allow_html=True)
+        st.caption(f'PROGNOZA {idx+1} / {len(answers)}')
+
+        if review_case is not None:
+            ret=float(ans['future_return_pct'])
+            ret_txt=f"{ret:+.1f}%".replace('.', ',')
+            result=ans['result']
+            if result=='TRAFIONA':
+                result_label,result_class='TRAFIONA','hit'
+            elif result=='NIETRAFIONA':
+                result_label,result_class='NIETRAFIONA','miss'
+            else:
+                result_label,result_class='BRAK WYRAŹNEGO RUCHU','side'
+
+            direction='WZROŚNIE' if ans['prediction']=='WZROST' else 'SPADNIE'
+            st.markdown(
+                f"<div class='reveal-ticker'>{review_case['instrument']}</div>"
+                f"<div class='reveal-result'>{ret_txt} — <span class='{result_class}'>{result_label}</span></div>"
+                f"<div class='hero-note' style='font-size:.95rem;margin-bottom:.35rem'>"
+                f"Twoja prognoza: <b>{direction}</b> · pewność <b>{int(ans['confidence'])}%</b></div>",
+                unsafe_allow_html=True,
+            )
+            st.plotly_chart(
+                make_chart(review_case,reveal=True),
+                use_container_width=True,
+                config={'displayModeBar':False,'staticPlot':True},
+                key=f"review_chart_{idx}",
+            )
+
+        prev_col,next_col=st.columns(2)
+        if prev_col.button('← POPRZEDNI',use_container_width=True,disabled=(idx==0),key='review_prev'):
+            st.session_state.review_idx=idx-1
+            st.rerun()
+        if next_col.button('NASTĘPNY →',type='primary',use_container_width=True,disabled=(idx>=len(answers)-1),key='review_next'):
+            st.session_state.review_idx=idx+1
+            st.rerun()
+
+        if st.button('WRÓĆ DO WYNIKU',use_container_width=True,key='close_review'):
+            st.session_state.review_open=False
+            st.rerun()
+
+    st.markdown(
+        '''
+        <div style="margin-top:2rem;padding-top:1.25rem;border-top:1px solid rgba(128,128,128,.25);">
+        <strong>Chcesz wiedzieć, po co zrobiłem ten eksperyment?</strong><br>
+        O wynikach i o tym, czego możemy się z nich dowiedzieć, napiszę na Substacku.<br>
+        <strong><a href="https://grzegorzzalewski.substack.com/" target="_blank">→ Grzegorz Zalewski – Między chciwością i strachem</a></strong>
+        </div>
+        ''',
+        unsafe_allow_html=True,
+    )
+
     if st.button('NOWY TEST',use_container_width=True):
         for k in list(st.session_state.keys()): del st.session_state[k]
         st.rerun()
